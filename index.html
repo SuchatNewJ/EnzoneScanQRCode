@@ -89,6 +89,27 @@
   .log-meta{color:var(--muted);font-size:11.5px;}
 
   .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;}
+
+  .newcode-card{background:var(--card);border:1px dashed var(--orange);border-radius:16px;
+                padding:16px;margin-top:14px;}
+  .newcode-card .code-shown{font-family:'Inter',sans-serif;font-size:15px;font-weight:700;
+                             color:var(--orange);}
+  .choice-row{display:flex;gap:8px;margin-top:12px;}
+  .choice-row button{flex:1;}
+  .form-field{margin-top:10px;}
+  .form-field label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .form-field input{width:100%;padding:10px;border-radius:9px;border:1px solid var(--line);
+                     background:var(--card-2);color:var(--text);font-size:15px;
+                     font-family:'Sarabun',sans-serif;}
+  .form-field input:focus{outline:2px solid var(--orange);}
+  .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
+  .search-list{max-height:260px;overflow-y:auto;margin-top:10px;border-top:1px solid var(--line);}
+  .search-item{padding:10px 4px;border-bottom:1px solid var(--line);cursor:pointer;font-size:13.5px;}
+  .search-item:active{background:var(--card-2);}
+  .search-item .sname{font-family:'Mitr',sans-serif;font-weight:500;}
+  .search-item .smeta{color:var(--muted);font-size:11.5px;margin-top:2px;}
+  .link-back{color:var(--muted);font-size:12.5px;text-decoration:underline;cursor:pointer;
+             display:inline-block;margin-top:10px;}
   footer{position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid var(--line);
          padding:8px 14px;font-size:11px;color:var(--muted);text-align:center;}
 </style>
@@ -156,6 +177,48 @@
         </div>
         <button class="btn btn-issue" id="btnIssue">📤 เบิกออก</button>
         <button class="btn btn-receive" id="btnReceive">📥 รับเข้า</button>
+      </div>
+    </div>
+
+    <!-- แสดงเมื่อสแกน/ค้นหาแล้วไม่พบสินค้ารหัสนี้ในระบบ -->
+    <div class="newcode-card" id="newCodeCard" style="display:none;">
+      <div>ไม่พบรหัส <span class="code-shown" id="ncCode"></span> ในระบบ</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-top:4px;">ต้องการเพิ่มรหัสนี้เข้าระบบไหม?</div>
+
+      <div class="choice-row" id="ncChoices">
+        <button class="btn btn-secondary" id="ncLinkBtn">🔗 ผูกกับสินค้าเดิม</button>
+        <button class="btn btn-primary" id="ncNewBtn">➕ เพิ่มสินค้าใหม่</button>
+      </div>
+
+      <!-- โหมด: ผูกกับสินค้าเดิม -->
+      <div id="ncLinkMode" style="display:none;">
+        <div class="form-field">
+          <label>ค้นหาสินค้าเดิม (ชื่อ หรือ รหัสสินค้า)</label>
+          <input id="ncSearchInput" type="text" placeholder="พิมพ์ชื่อสินค้า...">
+        </div>
+        <div class="search-list" id="ncSearchList"></div>
+        <div class="link-back" id="ncBack1">‹ ย้อนกลับ</div>
+      </div>
+
+      <!-- โหมด: เพิ่มสินค้าใหม่ -->
+      <div id="ncNewMode" style="display:none;">
+        <div class="form-field"><label>ชื่อสินค้า *</label><input id="npName" type="text"></div>
+        <div class="form-grid2">
+          <div class="form-field"><label>แบรนด์</label><input id="npBrand" type="text"></div>
+          <div class="form-field"><label>หมวดหมู่</label><input id="npCategory" type="text"></div>
+        </div>
+        <div class="form-grid2">
+          <div class="form-field"><label>จำนวนเริ่มต้น</label><input id="npQty" type="number" value="0"></div>
+          <div class="form-field"><label>หน่วย</label><input id="npUnit" type="text" placeholder="ชิ้น / ม้วน / เมตร"></div>
+        </div>
+        <div class="form-grid2">
+          <div class="form-field"><label>ราคาทุน</label><input id="npCost" type="number" step="0.01"></div>
+          <div class="form-field"><label>ราคาขาย</label><input id="npSell" type="number" step="0.01"></div>
+        </div>
+        <div class="form-field"><label>ที่จัดเก็บ (PlaceStore)</label><input id="npStore" type="text"></div>
+        <div class="form-field"><label>ลิงก์รูปภาพ (ถ้ามี)</label><input id="npImg" type="text" placeholder="https://..."></div>
+        <button class="btn btn-primary btn-block" id="npSaveBtn" style="margin-top:12px;">💾 บันทึกสินค้าใหม่</button>
+        <div class="link-back" id="ncBack2">‹ ย้อนกลับ</div>
       </div>
     </div>
   </section>
@@ -256,14 +319,18 @@ $('manualCode').addEventListener('keydown', (e) => {
 /* ============ API calls ============ */
 let currentProduct = null;
 
+let pendingCode = null;
+
 async function lookupProduct(code){
   setStatus('กำลังค้นหารหัส ' + code + ' ...');
+  hideNewCodeCard();
   try {
     const res = await fetch(API_URL + '?action=lookup&code=' + encodeURIComponent(code));
     const data = await res.json();
     if (!data.ok) {
-      setStatus(data.error || 'ไม่พบสินค้า', 'err');
       $('productCard').style.display = 'none';
+      setStatus('');
+      showNewCodeCard(code);
       return;
     }
     currentProduct = data.product;
@@ -273,6 +340,124 @@ async function lookupProduct(code){
     setStatus('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + err, 'err');
   }
 }
+
+/* ============ รหัสใหม่ที่ยังไม่มีในระบบ: ผูกกับของเดิม หรือ เพิ่มสินค้าใหม่ ============ */
+function showNewCodeCard(code){
+  pendingCode = code;
+  $('ncCode').textContent = code;
+  $('newCodeCard').style.display = 'block';
+  $('ncChoices').style.display = 'flex';
+  $('ncLinkMode').style.display = 'none';
+  $('ncNewMode').style.display = 'none';
+}
+function hideNewCodeCard(){
+  $('newCodeCard').style.display = 'none';
+  pendingCode = null;
+}
+
+let productsCache = null;
+async function ensureProductsCache(){
+  if (productsCache) return productsCache;
+  const res = await fetch(API_URL + '?action=list');
+  const data = await res.json();
+  productsCache = data.ok ? data.products : [];
+  return productsCache;
+}
+
+$('ncLinkBtn').addEventListener('click', async () => {
+  $('ncChoices').style.display = 'none';
+  $('ncLinkMode').style.display = 'block';
+  $('ncSearchList').innerHTML = '<div class="empty">กำลังโหลดรายการสินค้า...</div>';
+  const list = await ensureProductsCache();
+  renderSearchList(list);
+});
+$('ncNewBtn').addEventListener('click', () => {
+  $('ncChoices').style.display = 'none';
+  $('ncNewMode').style.display = 'block';
+});
+$('ncBack1').addEventListener('click', () => showNewCodeCard(pendingCode));
+$('ncBack2').addEventListener('click', () => showNewCodeCard(pendingCode));
+
+$('ncSearchInput').addEventListener('input', async (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  const list = await ensureProductsCache();
+  const filtered = !q ? list : list.filter(p =>
+    String(p.ProductName || '').toLowerCase().includes(q) ||
+    String(p.ProductID || '').toLowerCase().includes(q)
+  );
+  renderSearchList(filtered.slice(0, 30));
+});
+
+function renderSearchList(list){
+  if (!list.length) { $('ncSearchList').innerHTML = '<div class="empty">ไม่พบสินค้า ลองพิมพ์คำอื่น</div>'; return; }
+  $('ncSearchList').innerHTML = list.map(p =>
+    '<div class="search-item" data-id="' + String(p.ProductID).replace(/"/g,'') + '">' +
+      '<div class="sname">' + (p.ProductName || '(ไม่มีชื่อ)') + '</div>' +
+      '<div class="smeta">รหัส: ' + (p.ProductID || '-') + ' • บาร์โค้ดเดิม: ' + (p.BarCode || 'ยังไม่มี') + '</div>' +
+    '</div>'
+  ).join('');
+  document.querySelectorAll('.search-item').forEach(el => {
+    el.addEventListener('click', () => linkBarcodeToProduct(el.dataset.id));
+  });
+}
+
+async function linkBarcodeToProduct(productId){
+  setStatus('กำลังผูกรหัส...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'assignBarcode', productId: productId, barcode: pendingCode })
+    });
+    const data = await res.json();
+    if (!data.ok) { setStatus(data.error || 'ผูกรหัสไม่สำเร็จ', 'err'); return; }
+    productsCache = null; // เคลียร์แคชให้โหลดใหม่รอบหน้า
+    hideNewCodeCard();
+    currentProduct = data.product;
+    renderProduct(currentProduct);
+    setStatus('ผูกรหัส ' + pendingCode + ' เข้ากับ "' + currentProduct.ProductName + '" สำเร็จ', 'ok');
+  } catch (err) {
+    setStatus('ผูกรหัสไม่สำเร็จ: ' + err, 'err');
+  }
+}
+
+$('npSaveBtn').addEventListener('click', async () => {
+  const name = $('npName').value.trim();
+  if (!name) { setStatus('กรุณาระบุชื่อสินค้า', 'err'); return; }
+  setStatus('กำลังบันทึกสินค้าใหม่...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({
+        action: 'createProduct',
+        barcode: pendingCode,
+        product: {
+          ProductName: name,
+          Brand: $('npBrand').value.trim(),
+          Category: $('npCategory').value.trim(),
+          Quantity: Number($('npQty').value) || 0,
+          Unit: $('npUnit').value.trim(),
+          CostPrice: Number($('npCost').value) || 0,
+          SellPrice: Number($('npSell').value) || 0,
+          PlaceStore: $('npStore').value.trim(),
+          imageURL: $('npImg').value.trim()
+        }
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) { setStatus(data.error || 'บันทึกไม่สำเร็จ', 'err'); return; }
+    productsCache = null;
+    hideNewCodeCard();
+    currentProduct = data.product;
+    renderProduct(currentProduct);
+    ['npName','npBrand','npCategory','npUnit','npStore','npImg'].forEach(id => $(id).value = '');
+    $('npQty').value = 0; $('npCost').value = ''; $('npSell').value = '';
+    setStatus('เพิ่มสินค้า "' + currentProduct.ProductName + '" และผูกรหัสสำเร็จ', 'ok');
+  } catch (err) {
+    setStatus('บันทึกไม่สำเร็จ: ' + err, 'err');
+  }
+});
 
 function renderProduct(p){
   $('productCard').style.display = 'block';

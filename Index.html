@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ENZONE | สแกนเช็คสต็อกอุปกรณ์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --navy:#0D2137; --navy-2:#132a44; --orange:#F97316; --orange-dark:#c2570a;
+    --bg:#0a1a2b; --card:#12253c; --card-2:#1a3350; --line:#22415f;
+    --text:#eaf2fb; --muted:#8ca3bd; --good:#22c55e; --bad:#ef4444;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;
+       -webkit-tap-highlight-color:transparent;}
+  header{background:linear-gradient(135deg,var(--navy),var(--navy-2));padding:16px 18px;
+         display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:20;
+         box-shadow:0 2px 10px rgba(0,0,0,.35);}
+  .logo{width:40px;height:40px;border-radius:10px;background:var(--orange);
+        display:flex;align-items:center;justify-content:center;font-family:'Mitr',sans-serif;
+        font-weight:700;color:#111;font-size:15px;flex-shrink:0;}
+  header h1{font-family:'Mitr',sans-serif;font-size:16px;margin:0;font-weight:600;}
+  header p{margin:2px 0 0;font-size:12px;color:var(--muted);}
+  main{max-width:520px;margin:0 auto;padding:14px 14px 100px;}
+
+  .tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .tab-btn{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);
+           background:var(--card);color:var(--muted);font-family:'Mitr',sans-serif;
+           font-size:13px;font-weight:500;cursor:pointer;}
+  .tab-btn.active{background:var(--orange);color:#111;border-color:var(--orange);font-weight:600;}
+
+  .panel{display:none;} .panel.active{display:block;}
+
+  #reader{width:100%;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+          background:#000;}
+  .scan-controls{display:flex;gap:8px;margin-top:10px;}
+  button.btn{font-family:'Mitr',sans-serif;font-size:14px;font-weight:600;border:none;
+             border-radius:12px;padding:12px 14px;cursor:pointer;}
+  .btn-primary{background:var(--orange);color:#111;}
+  .btn-primary:active{background:var(--orange-dark);}
+  .btn-secondary{background:var(--card-2);color:var(--text);border:1px solid var(--line);}
+  .btn-block{width:100%;}
+
+  .manual-row{display:flex;gap:8px;margin-top:12px;}
+  .manual-row input{flex:1;padding:12px;border-radius:10px;border:1px solid var(--line);
+                     background:var(--card);color:var(--text);font-size:16px;
+                     font-family:'Inter',sans-serif;}
+  .manual-row input:focus{outline:2px solid var(--orange);}
+
+  .status{margin-top:12px;font-size:13px;color:var(--muted);text-align:center;min-height:18px;}
+  .status.err{color:var(--bad);} .status.ok{color:var(--good);}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+        padding:16px;margin-top:14px;}
+  .card-top{display:flex;gap:12px;}
+  .card-img{width:76px;height:76px;border-radius:10px;background:var(--card-2);
+            object-fit:cover;flex-shrink:0;border:1px solid var(--line);}
+  .card-name{font-family:'Mitr',sans-serif;font-size:16px;font-weight:600;line-height:1.35;}
+  .card-sub{font-size:12.5px;color:var(--muted);margin-top:4px;}
+  .badge{display:inline-block;background:var(--card-2);border:1px solid var(--line);
+         border-radius:999px;padding:2px 9px;font-size:11px;color:var(--muted);margin-right:5px;}
+
+  .qty-row{display:flex;align-items:baseline;justify-content:space-between;
+           margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+  .qty-num{font-family:'Inter',sans-serif;font-size:30px;font-weight:700;}
+  .qty-unit{font-size:13px;color:var(--muted);margin-left:6px;}
+  .price-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;
+              font-family:'Inter',sans-serif;font-size:13px;}
+  .price-grid div span{display:block;color:var(--muted);font-size:11px;font-family:'Sarabun',sans-serif;}
+
+  .action-row{display:flex;gap:8px;margin-top:16px;}
+  .stepper{display:flex;align-items:center;gap:8px;background:var(--card-2);
+           border-radius:12px;padding:4px;border:1px solid var(--line);}
+  .stepper button{width:34px;height:34px;border-radius:8px;border:none;background:var(--navy-2);
+                   color:var(--text);font-size:18px;cursor:pointer;}
+  .stepper input{width:44px;text-align:center;background:transparent;border:none;color:var(--text);
+                 font-family:'Inter',sans-serif;font-size:16px;}
+
+  .btn-issue{background:var(--bad);color:#fff;flex:1;}
+  .btn-receive{background:var(--good);color:#08210f;flex:1;}
+
+  .log-item{display:flex;justify-content:space-between;gap:10px;padding:10px 0;
+            border-bottom:1px solid var(--line);font-size:13px;}
+  .log-item:last-child{border-bottom:none;}
+  .log-action{font-weight:600;} .log-action.out{color:var(--bad);} .log-action.in{color:var(--good);}
+  .log-meta{color:var(--muted);font-size:11.5px;}
+
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;}
+  footer{position:fixed;bottom:0;left:0;right:0;background:var(--navy);border-top:1px solid var(--line);
+         padding:8px 14px;font-size:11px;color:var(--muted);text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">EN</div>
+  <div>
+    <h1>ENZONE | สแกนเช็คสต็อก</h1>
+    <p>สแกนบาร์โค้ด/QR อุปกรณ์ไฟฟ้า — เชื่อม Google Sheet</p>
+  </div>
+</header>
+
+<main>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="scan">📷 สแกน</button>
+    <button class="tab-btn" data-tab="history">🕘 รายการล่าสุด</button>
+  </div>
+
+  <!-- SCAN TAB -->
+  <section class="panel active" id="tab-scan">
+    <div id="reader"></div>
+    <div class="scan-controls">
+      <button class="btn btn-primary btn-block" id="startBtn">▶ เริ่มสแกน</button>
+      <button class="btn btn-secondary" id="stopBtn" style="display:none;">⏹ หยุด</button>
+    </div>
+    <div class="manual-row">
+      <input id="manualCode" type="text" inputmode="text" placeholder="หรือพิมพ์รหัสสินค้า / บาร์โค้ดเอง" />
+      <button class="btn btn-secondary" id="manualBtn">ค้นหา</button>
+    </div>
+    <div class="status" id="status"></div>
+
+    <div class="card" id="productCard" style="display:none;">
+      <div class="card-top">
+        <img class="card-img" id="pImg" src="" alt="">
+        <div>
+          <div class="card-name" id="pName">-</div>
+          <div class="card-sub" id="pMeta">-</div>
+          <div style="margin-top:6px;">
+            <span class="badge" id="pId">-</span>
+            <span class="badge" id="pStore">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="qty-row">
+        <div><span class="qty-num" id="pQty">0</span><span class="qty-unit" id="pUnit">หน่วย</span></div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--muted);">สต็อกเริ่มต้น</div>
+          <div style="font-family:'Inter',sans-serif;font-size:14px;" id="pInitQty">0</div>
+        </div>
+      </div>
+
+      <div class="price-grid">
+        <div><span>ราคาทุน</span><span id="pCost">-</span></div>
+        <div><span>ราคาขาย</span><span id="pSell">-</span></div>
+      </div>
+
+      <div class="action-row">
+        <div class="stepper">
+          <button id="stepMinus">−</button>
+          <input id="stepQty" type="number" value="1" min="1" inputmode="numeric">
+          <button id="stepPlus">+</button>
+        </div>
+        <button class="btn btn-issue" id="btnIssue">📤 เบิกออก</button>
+        <button class="btn btn-receive" id="btnReceive">📥 รับเข้า</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY TAB -->
+  <section class="panel" id="tab-history">
+    <button class="btn btn-secondary btn-block" id="refreshLog">🔄 โหลดรายการล่าสุด</button>
+    <div id="logList"></div>
+  </section>
+</main>
+
+<footer>ENZONE SERVICE • ระบบเช็คสต็อกอุปกรณ์ไฟฟ้าด้วยบาร์โค้ด/QR</footer>
+
+<script>
+/* ============ ตั้งค่า ============ */
+// วาง Web App URL ของ Google Apps Script (ลงท้ายด้วย /exec) ตรงนี้
+const API_URL = 'https://script.google.com/macros/s/AKfycbzQAChUitEHYVLzDZGnaX4-Gjz-TcW1C65EAsWXwC6n3-wGvvCtw2b8_ghwAsOnxDNLPA/exec';
+
+/* ============ Helpers ============ */
+const $ = (id) => document.getElementById(id);
+const fmtNum = (n) => (n === '' || n === undefined || n === null || isNaN(n)) ? '-' : Number(n).toLocaleString('th-TH');
+const fmtMoney = (n) => (n === '' || n === undefined || n === null || isNaN(n) || Number(n) === 0) ? '-' : Number(n).toLocaleString('th-TH', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+function setStatus(msg, type){
+  const el = $('status');
+  el.textContent = msg || '';
+  el.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* ============ Tabs ============ */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+    if (btn.dataset.tab === 'history') loadHistory();
+  });
+});
+
+/* ============ Scanner ============ */
+let html5QrCode;
+let scanning = false;
+
+function startScanner(){
+  if (scanning) return;
+  html5QrCode = new Html5Qrcode('reader');
+  const config = { fps: 10, qrbox: { width: 240, height: 140 } };
+  html5QrCode.start(
+    { facingMode: 'environment' },
+    config,
+    (decodedText) => {
+      onCodeDetected(decodedText);
+    },
+    () => { /* ignore per-frame scan failures */ }
+  ).then(() => {
+    scanning = true;
+    $('startBtn').style.display = 'none';
+    $('stopBtn').style.display = 'inline-block';
+    setStatus('กำลังสแกน... เล็งกล้องไปที่บาร์โค้ดหรือ QR');
+  }).catch((err) => {
+    setStatus('เปิดกล้องไม่ได้: ' + err, 'err');
+  });
+}
+
+function stopScanner(){
+  if (!scanning || !html5QrCode) return;
+  html5QrCode.stop().then(() => {
+    html5QrCode.clear();
+    scanning = false;
+    $('startBtn').style.display = 'inline-block';
+    $('stopBtn').style.display = 'none';
+    setStatus('');
+  });
+}
+
+$('startBtn').addEventListener('click', startScanner);
+$('stopBtn').addEventListener('click', stopScanner);
+
+let lastCode = null;
+let lastScanTime = 0;
+function onCodeDetected(code){
+  const now = Date.now();
+  if (code === lastCode && now - lastScanTime < 2500) return; // กันสแกนซ้ำรัวๆ
+  lastCode = code; lastScanTime = now;
+  if (navigator.vibrate) navigator.vibrate(80);
+  lookupProduct(code);
+}
+
+$('manualBtn').addEventListener('click', () => {
+  const code = $('manualCode').value.trim();
+  if (code) lookupProduct(code);
+});
+$('manualCode').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') $('manualBtn').click();
+});
+
+/* ============ API calls ============ */
+let currentProduct = null;
+
+async function lookupProduct(code){
+  setStatus('กำลังค้นหารหัส ' + code + ' ...');
+  try {
+    const res = await fetch(API_URL + '?action=lookup&code=' + encodeURIComponent(code));
+    const data = await res.json();
+    if (!data.ok) {
+      setStatus(data.error || 'ไม่พบสินค้า', 'err');
+      $('productCard').style.display = 'none';
+      return;
+    }
+    currentProduct = data.product;
+    renderProduct(currentProduct);
+    setStatus('พบสินค้า: ' + currentProduct.ProductName, 'ok');
+  } catch (err) {
+    setStatus('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: ' + err, 'err');
+  }
+}
+
+function renderProduct(p){
+  $('productCard').style.display = 'block';
+  $('pImg').src = p.imageURL || 'https://placehold.co/76x76/1a3350/8ca3bd?text=EN';
+  $('pName').textContent = p.ProductName || '(ไม่มีชื่อ)';
+  $('pMeta').textContent = [p.Brand, p.Category].filter(Boolean).join(' • ') || '-';
+  $('pId').textContent = 'รหัส: ' + (p.ProductID || '-');
+  $('pStore').textContent = 'ที่เก็บ: ' + (p.PlaceStore || '-');
+  $('pQty').textContent = fmtNum(p.Quantity);
+  $('pUnit').textContent = p.Unit || p.BaseUnit || '';
+  $('pInitQty').textContent = fmtNum(p.InitialQty);
+  $('pCost').textContent = fmtMoney(p.CostPrice);
+  $('pSell').textContent = fmtMoney(p.SellPrice);
+}
+
+$('stepMinus').addEventListener('click', () => {
+  const inp = $('stepQty'); inp.value = Math.max(1, (parseInt(inp.value)||1) - 1);
+});
+$('stepPlus').addEventListener('click', () => {
+  const inp = $('stepQty'); inp.value = (parseInt(inp.value)||1) + 1;
+});
+
+async function updateQty(sign){
+  if (!currentProduct) return;
+  const qty = parseInt($('stepQty').value) || 1;
+  const delta = sign * qty;
+  setStatus('กำลังบันทึก...');
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' }, // เลี่ยง CORS preflight
+      body: JSON.stringify({
+        action: 'updateQty',
+        code: currentProduct.BarCode || currentProduct.ProductID,
+        delta: delta,
+        note: sign < 0 ? 'เบิกออกผ่านแอปสแกน' : 'รับเข้าผ่านแอปสแกน'
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) { setStatus(data.error || 'บันทึกไม่สำเร็จ', 'err'); return; }
+    currentProduct = data.product;
+    renderProduct(currentProduct);
+    setStatus((sign < 0 ? 'เบิกออก' : 'รับเข้า') + ' ' + qty + ' ' + (currentProduct.Unit||'') + ' สำเร็จ', 'ok');
+  } catch (err) {
+    setStatus('บันทึกไม่สำเร็จ: ' + err, 'err');
+  }
+}
+$('btnIssue').addEventListener('click', () => updateQty(-1));
+$('btnReceive').addEventListener('click', () => updateQty(1));
+
+/* ============ History ============ */
+async function loadHistory(){
+  const list = $('logList');
+  list.innerHTML = '<div class="empty">กำลังโหลด...</div>';
+  try {
+    const res = await fetch(API_URL + '?action=recent');
+    const data = await res.json();
+    if (!data.ok || !data.logs || !data.logs.length) {
+      list.innerHTML = '<div class="empty">ยังไม่มีรายการ</div>';
+      return;
+    }
+    list.innerHTML = data.logs.map(row => {
+      // row = [Timestamp, ProductID, BarCode, ProductName, Action, Qty, BeforeQty, AfterQty, Note]
+      const ts = new Date(row[0]);
+      const timeStr = isNaN(ts) ? '' : ts.toLocaleString('th-TH', {dateStyle:'short', timeStyle:'short'});
+      const isOut = row[4] === 'เบิกออก';
+      return '<div class="log-item"><div>' +
+        '<div>' + (row[3] || row[1] || '') + '</div>' +
+        '<div class="log-meta">' + timeStr + ' • ' + (row[6] ?? '') + ' → ' + (row[7] ?? '') + '</div>' +
+        '</div><div class="log-action ' + (isOut?'out':'in') + '">' +
+        (isOut ? '−' : '+') + row[5] + '</div></div>';
+    }).join('');
+  } catch (err) {
+    list.innerHTML = '<div class="empty">โหลดไม่สำเร็จ: ' + err + '</div>';
+  }
+}
+$('refreshLog').addEventListener('click', loadHistory);
+</script>
+</body>
+</html>

@@ -305,7 +305,16 @@ function onCodeDetected(code){
   if (code === lastCode && now - lastScanTime < 2500) return; // กันสแกนซ้ำรัวๆ
   lastCode = code; lastScanTime = now;
   if (navigator.vibrate) navigator.vibrate(80);
+  flashReaderBorder();
+  // เลื่อนการหยุดกล้องออกไปเล็กน้อย เพื่อเลี่ยงปัญหาเรียก stop() ซ้อนกับ callback ของไลบรารีสแกน
+  setTimeout(stopScanner, 0);
   lookupProduct(code);
+}
+
+function flashReaderBorder(){
+  const reader = $('reader');
+  reader.style.boxShadow = '0 0 0 4px #22c55e';
+  setTimeout(() => { reader.style.boxShadow = ''; }, 500);
 }
 
 $('manualBtn').addEventListener('click', () => {
